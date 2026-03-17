@@ -1,0 +1,20 @@
+[33mf0bd916[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/finance-profit-reporting[m[33m)[m Analytics module: inventory health drilldown endpoint
+[33m754e9a5[m Analytics module: inventory health summary
+[33mf3b01c4[m Analytics module: marketplace performance
+[33mece8f1d[m Analytics module: sell-through and time-to-sell
+[33m209d7a1[m Fix inventory aging datetime serialization
+[33mbce7e7c[m Finance anomalies: high fee, shipping, buy cost, weak profit
+[33m5685665[m FlipTwice backend checkpoint: finance analytics + ledger integration
+[33m8c4911c[m Finance: add kind and display_amount to item ledger lines
+[33m57571bd[m Finance: single item profit detail with ledger lines
+[33m67485a7[m Finance: per-item profit report with item metadata join
+[33m60bf9da[m Finance profit summary (ledger-based)
+[33m9edad4c[m Add finance profit summary endpoint (ledger-based)
+[33m5b19936[m[33m ([m[1;33mtag: [m[1;33mv0.1-foundation[m[33m, [m[1;32mmaster[m[33m)[m FlipTwice backend foundation
+[33m4c37686[m feat: audit sold edit blocks in item_events
+[33m2e4baa0[m checkpoint before fixing missing insert_item_event and moving audit insert to repo
+[33m6fa97da[m feat: enforce sold edit restrictions on economic fields
+[33m400c0fe[m feat: freeze pricing snapshot after Sold status transition
+[33m66282a9[m feat: persist market_price override and integrate into pricing snapshot workflow
+[33m3b0b940[m checkpoint before fixing market_price persistence
+[33m666d0c3[m checkpoint before state machine integration
