@@ -12,6 +12,7 @@ from app.integrations.ebay.schemas import (
     ManualUnlinkRequest,
     ManualUnlinkResponse,
     UnmatchedListingsResponse,
+    EbayPublishResponse,
 )
 from app.integrations.ebay.service import (
     build_connect_url,
@@ -22,6 +23,7 @@ from app.integrations.ebay.service import (
     manually_link_ebay_listing,
     manually_unlink_ebay_listing,
     persist_oauth_tokens_from_callback,
+    publish_item_to_ebay,
 )
 
 router = APIRouter(prefix="/integrations/ebay", tags=["integrations"])
@@ -148,3 +150,18 @@ def ebay_unlink_listing(
         raise HTTPException(status_code=500, detail=str(exc))
 
     return ManualUnlinkResponse(**payload)
+
+@router.post("/publish-item", response_model=EbayPublishResponse)
+def ebay_publish_item(
+    business_id: str = Query(...),
+    item_id: str = Query(...),
+):
+    try:
+        payload = publish_item_to_ebay(
+            business_id=business_id,
+            item_id=item_id,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    return EbayPublishResponse(**payload)

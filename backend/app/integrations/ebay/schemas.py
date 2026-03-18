@@ -116,3 +116,26 @@ class ManualUnlinkResponse(BaseModel):
     business_id: str
     source_row_id: str
     unlinked: bool
+
+class EbayPublishResponse(BaseModel):
+    business_id: str
+    item_id: str
+    platform: str
+
+    sku: str
+    price: str
+
+    offer_id: str | None = None
+    external_listing_id: str | None = None
+    marketplace_listing_id: str
+
+    status: str
+    publish_status: str
+    sync_status: str
+
+    inventory_created: bool
+    offer_created: bool
+    published: bool
+    retry_possible: bool
+
+    error: str | None = None
