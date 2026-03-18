@@ -7,9 +7,11 @@ from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 from decimal import Decimal
 from typing import Any, Optional
+from app.marketplace_listings.repo import get_marketplace_listing_for_item
 
 from app.marketplace_listings.repo import (
     create_or_get_marketplace_listing,
+    get_marketplace_listing_for_item,
     mark_marketplace_listing_error,
     update_marketplace_listing_publish_state,
 )
@@ -788,11 +790,12 @@ def publish_item_to_ebay(
         sync_status="pending",
     )
 
+    offer_id = (listing_row.get("external_offer_id") or "").strip() or None
+    listing_id_external = (listing_row.get("external_listing_id") or "").strip() or None
+    inventory_created = bool(listing_row.get("external_inventory_key"))
+    offer_created = bool(offer_id)
+
     try:
-        offer_id = (listing_row.get("external_offer_id") or "").strip() or None
-        listing_id_external = (listing_row.get("external_listing_id") or "").strip() or None
-        inventory_created = bool(listing_row.get("external_inventory_key"))
-        offer_created = bool(offer_id)
         access_token, _updated_integration = ensure_valid_access_token(
             integration=integration,
         )
@@ -817,7 +820,6 @@ def publish_item_to_ebay(
             last_publish_attempt_at_now=True,
             clear_error=True,
         )
-        offer_created = True
 
         existing_offer_id = (listing_row.get("external_offer_id") or "").strip()
 
@@ -827,6 +829,7 @@ def publish_item_to_ebay(
                 "reused_existing_offer": True,
                 "offerId": offer_id,
             }
+            offer_created = True
         else:
             offer_response = create_offer_on_ebay(
                 access_token=access_token,
@@ -857,6 +860,7 @@ def publish_item_to_ebay(
                 last_publish_attempt_at_now=True,
                 clear_error=True,
             )
+            offer_created = True
 
         publish_response = publish_offer_on_ebay(
             access_token=access_token,
@@ -872,7 +876,7 @@ def publish_item_to_ebay(
         publish_status = "published"
         listing_status = "live"
 
-        if str(publish_response).upper().find("UNPUBLISHED") != -1:
+        if "UNPUBLISHED" in str(publish_response).upper():
             publish_status = "unpublished"
             listing_status = "submitted"
 
@@ -902,11 +906,16 @@ def publish_item_to_ebay(
             "price": price_value,
             "offer_id": offer_id,
             "external_listing_id": listing_id_external,
+            "marketplace_listing_id": final_row.get("id"),
             "status": final_row.get("status"),
             "publish_status": final_row.get("publish_status"),
             "sync_status": final_row.get("sync_status"),
-            "marketplace_listing_id": final_row.get("id"),
-            "publish_response": publish_response,
+            "inventory_created": inventory_created,
+            "offer_created": offer_created,
+            "published": publish_status == "published",
+            "retry_possible": publish_status != "published",
+            "result_type": "published" if publish_status == "published" else "partial_success",
+            "error": None,
         }
 
     except Exception as exc:
@@ -939,8 +948,62 @@ def publish_item_to_ebay(
             "offer_created": offer_created,
             "published": False,
             "retry_possible": True,
+            "result_type": "partial_success" if inventory_created or offer_created else "failed",
             "error": str(exc),
         }
-        raise RuntimeError(
-            f"eBay publish failed. marketplace_listing_id={error_row['id']}. {str(exc)}"
-        ) from exc
+    
+def get_ebay_item_status(
+    *,
+    business_id: str,
+    item_id: str,
+) -> dict:
+    row = get_marketplace_listing_for_item(
+        business_id=business_id,
+        item_id=item_id,
+        platform="ebay",
+    )
+
+    if not row:
+        return {
+            "business_id": business_id,
+            "item_id": item_id,
+            "platform": "ebay",
+            "marketplace_listing_id": None,
+            "status": None,
+            "publish_status": None,
+            "sync_status": None,
+            "external_listing_id": None,
+            "offer_id": None,
+            "published": False,
+            "retry_possible": False,
+            "result_type": "not_started",
+            "last_error": None,
+        }
+
+    publish_status = row.get("publish_status")
+
+    published = publish_status == "published"
+    retry_possible = publish_status in ("failed", "unpublished")
+
+    if published:
+        result_type = "published"
+    elif retry_possible:
+        result_type = "partial_success"
+    else:
+        result_type = "in_progress"
+
+    return {
+        "business_id": business_id,
+        "item_id": item_id,
+        "platform": "ebay",
+        "marketplace_listing_id": row.get("id"),
+        "status": row.get("status"),
+        "publish_status": publish_status,
+        "sync_status": row.get("sync_status"),
+        "external_listing_id": row.get("external_listing_id"),
+        "offer_id": row.get("external_offer_id"),
+        "published": published,
+        "retry_possible": retry_possible,
+        "result_type": result_type,
+        "last_error": row.get("last_error"),
+    }

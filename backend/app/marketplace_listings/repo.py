@@ -376,3 +376,43 @@ def mark_marketplace_listing_error(
         raise RuntimeError("Marketplace listing not found")
 
     return dict(row)
+
+def get_marketplace_listing_for_item(
+    *,
+    business_id: str,
+    item_id: str,
+    platform: str,
+) -> Optional[Dict[str, Any]]:
+    sql_text = """
+    SELECT
+        id::text,
+        business_id::text,
+        item_id::text,
+        platform,
+        status,
+        publish_status,
+        sync_status,
+        external_listing_id,
+        external_offer_id,
+        last_error
+    FROM marketplace_listings
+    WHERE business_id = %(business_id)s::uuid
+      AND item_id = %(item_id)s::uuid
+      AND platform = %(platform)s
+    LIMIT 1
+    ;
+    """
+
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                sql_text,
+                {
+                    "business_id": business_id,
+                    "item_id": item_id,
+                    "platform": platform,
+                },
+            )
+            row = cur.fetchone()
+
+    return dict(row) if row else None

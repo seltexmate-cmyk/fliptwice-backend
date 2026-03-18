@@ -138,4 +138,30 @@ class EbayPublishResponse(BaseModel):
     published: bool
     retry_possible: bool
 
+    result_type: str
     error: str | None = None
+
+
+class EbayRetryPublishRequest(BaseModel):
+    business_id: str
+    item_id: str
+
+class EbayItemStatusResponse(BaseModel):
+    business_id: str
+    item_id: str
+    platform: str
+
+    marketplace_listing_id: str | None = None
+
+    status: str | None = None
+    publish_status: str | None = None
+    sync_status: str | None = None
+
+    external_listing_id: str | None = None
+    offer_id: str | None = None
+
+    published: bool
+    retry_possible: bool
+
+    result_type: str
+    last_error: str | None = None

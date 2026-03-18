@@ -13,6 +13,8 @@ from app.integrations.ebay.schemas import (
     ManualUnlinkResponse,
     UnmatchedListingsResponse,
     EbayPublishResponse,
+    EbayRetryPublishRequest,
+    EbayItemStatusResponse,
 )
 from app.integrations.ebay.service import (
     build_connect_url,
@@ -24,6 +26,7 @@ from app.integrations.ebay.service import (
     manually_unlink_ebay_listing,
     persist_oauth_tokens_from_callback,
     publish_item_to_ebay,
+    get_ebay_item_status,
 )
 
 router = APIRouter(prefix="/integrations/ebay", tags=["integrations"])
@@ -165,3 +168,31 @@ def ebay_publish_item(
         raise HTTPException(status_code=500, detail=str(exc))
 
     return EbayPublishResponse(**payload)
+@router.post("/retry-publish", response_model=EbayPublishResponse)
+def ebay_retry_publish(
+    request: EbayRetryPublishRequest,
+):
+    try:
+        payload = publish_item_to_ebay(
+            business_id=request.business_id,
+            item_id=request.item_id,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    return EbayPublishResponse(**payload)
+
+@router.get("/item-status", response_model=EbayItemStatusResponse)
+def ebay_item_status(
+    business_id: str = Query(...),
+    item_id: str = Query(...),
+):
+    try:
+        payload = get_ebay_item_status(
+            business_id=business_id,
+            item_id=item_id,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    return EbayItemStatusResponse(**payload)
